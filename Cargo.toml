@@ -1,0 +1,8 @@
+[package]
+name = "scheduler"
+version = "0.1.0"
+authors = ["Mark Barbone"]
+
+
+[dependencies.arduino_attiny]
+path = "../ruduino-attiny"
