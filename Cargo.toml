@@ -6,3 +6,6 @@ authors = ["Mark Barbone"]
 
 [dependencies.arduino_attiny]
 path = "../ruduino-attiny"
+
+[features]
+test_context_switch = []

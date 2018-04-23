@@ -35,6 +35,7 @@ impl ProcContext {
     }
 }
 
+#[cfg(feature = "test_context_switch")]
 pub unsafe fn test() {
     ptr::write_volatile(DDRB, 0x1F);
 
@@ -77,7 +78,7 @@ pub unsafe fn test() {
     }
 }
 
-#[no_mangle]
+#[cfg(feature = "test_context_switch")]
 pub extern "C" fn proc_fn(my_context_ptr: *mut ProcContext) -> ! {
     let green_led = LED::new(Pin::Pin2);
     loop {
