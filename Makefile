@@ -1,5 +1,5 @@
 
-.PHONY: all upload elf-new elf-old upload-new upload-old
+.PHONY: all upload elf-new elf-old upload-new upload-old debug
 
 elf-new:
 	rm Xargo.toml
@@ -25,3 +25,11 @@ upload-old: elf-old
 all: elf-old
 upload: upload-old
 
+debug: elf-old
+	simavr -gdb -m attiny85 target/avr-attiny85/release/scheduler.elf &
+	avr-gdb target/avr-attiny85/release/scheduler.elf \
+		-ex 'target remote localhost:1234' \
+		-ex 'layout asm' \
+		-ex 'layout reg' \
+		-ex 'break _asm_start_fn' \
+		-ex 'continue'

@@ -1,53 +1,37 @@
 
 use arduino_attiny::*;
-use core::{mem, ptr};
-use util::delay_ms;
-
-#[derive(Clone,Copy)]
-#[repr(C,packed)]
-pub struct StackPointer {
-    spl: u8,
-    sph: u8,
-}
-impl StackPointer {
-    pub fn new(x: u16) -> Self {
-        unsafe { mem::transmute(x) }
-    }
-    #[inline]
-    pub fn as_u16(self) -> u16 {
-        unsafe { mem::transmute(self) }
-    }
-}
+use core::ptr;
+use util::*;
 
 #[derive(Clone,Copy)]
 #[repr(C,packed)]
 pub struct ProcContext {
-    sp: StackPointer,
+    sp: u16,
 }
 
 #[no_mangle]
 pub static mut KERNEL_CONTEXT: ProcContext = ProcContext {
-    sp: StackPointer { spl: 0, sph: 0 },
+    sp: 0,
 };
 
 extern "C" {
-    fn _asm_switch_context(from: *mut ProcContext, to: ProcContext);
-    fn _asm_start_fn(f: extern "C" fn(ProcContext) -> !, stack_loc: usize);
+    fn _asm_switch_context(from: *mut ProcContext, to: u16);
+    fn _asm_start_fn(f: extern "C" fn(*mut ProcContext) -> !, stack_loc: usize);
 }
 
 impl ProcContext {
-    pub fn new(sp: StackPointer) -> Self {
+    pub fn new(sp: u16) -> Self {
         ProcContext {
             sp: sp,
         }
     }
 
-    pub unsafe fn start_fn(f: extern "C" fn(ProcContext) -> !, stack_loc: usize) -> *const Self {
+    pub unsafe fn start_fn(f: extern "C" fn(*mut ProcContext) -> !, stack_loc: usize) -> *const Self {
         _asm_start_fn(f, stack_loc);
-        (stack_loc - 2) as *const Self
+        stack_loc as *const Self
     }
     pub unsafe fn switch_to(&mut self, to: ProcContext) {
-        _asm_switch_context(self as *mut Self, to);
+        _asm_switch_context(self as *mut Self, to.sp);
     }
 }
 
@@ -70,35 +54,41 @@ pub unsafe fn test() {
     // | register file
     // +------- 0x000
 
-    ptr::write_volatile(PORTB, 0x01);
-    delay_ms(500);
-    ptr::write_volatile(PORTB, 0x00);
-    delay_ms(500);
 
     let proc_context_ptr = ProcContext::start_fn(proc_fn, new_stack_addr);
 
+    let orange_led = LED::new(Pin::Pin0);
     loop {
-        ptr::write_volatile(PORTB, 0x01);
+        for _ in 0..5 {
+            orange_led.on();
+            delay_ms(100);
+            orange_led.off();
+            delay_ms(100);
+        }
+
+        KERNEL_CONTEXT.switch_to(*proc_context_ptr);
+
+        orange_led.on();
         delay_ms(500);
-        ptr::write_volatile(PORTB, 0x00);
+        orange_led.off();
         delay_ms(500);
-        
+
         KERNEL_CONTEXT.switch_to(*proc_context_ptr);
     }
 }
 
 #[no_mangle]
-pub extern "C" fn proc_fn(mut my_context: ProcContext) -> ! {
-    unsafe {
-        loop {
-            for _ in 0..5 {
-                ptr::write_volatile(PORTB, 0x04);
-                delay_ms(100);
-                ptr::write_volatile(PORTB, 0x00);
-                delay_ms(100);
-            }
-            my_context.switch_to(KERNEL_CONTEXT);
+pub extern "C" fn proc_fn(my_context_ptr: *mut ProcContext) -> ! {
+    let green_led = LED::new(Pin::Pin2);
+    loop {
+        for _ in 0..5 {
+            green_led.off();
+            delay_ms(100);
+            green_led.on();
+            delay_ms(100);
         }
+        unsafe { _asm_switch_context(my_context_ptr, KERNEL_CONTEXT.sp); }
+        //unsafe { (&mut *my_context_ptr).switch_to(KERNEL_CONTEXT); }
     }
 }
 

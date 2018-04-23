@@ -73,8 +73,8 @@ _asm_switch_context:
     cli
     in r2, 61 ; r2r3 = SP
     in r3, 62
-    st Z+, r2 ; *from = SP
-    st Z, r3
+    st Z, r2 ; *from = SP
+    std Z+1, r3
     out 61, r22 ; SP = to
     out 62, r23
     out 63, r0 ; SREG = r0
@@ -94,6 +94,7 @@ _asm_switch_context:
     pop r7
     pop r6
     pop r5
+    pop r4
     pop r3
     pop r2
     ret
@@ -102,7 +103,7 @@ _end__asm_switch_context:
 
     .globl _asm_start_fn
     .type _asm_start_fn @function
-; extern "C" fn _asm_start_fn(f: *const fn(ProcContext) -> !, stack_loc: usize);
+; extern "C" fn _asm_start_fn(f: extern "C" fn(*mut ProcContext) -> !, stack_loc: usize);
 _asm_start_fn:
     ; f: r24r25
     ; stack_loc: r22r23
@@ -126,25 +127,23 @@ _asm_start_fn:
     push r28
     push r29
 
-    ldi r26, lo8(KERNEL_CONTEXT) ; X = &KERNEL_CONTEXT
-    ldi r27, hi8(KERNEL_CONTEXT)
-    in r2, 61 ; *X = SP
-    st X+, r2
-    in r2, 62
-    st X, r2
-    
-    movw r28, r22 ; Y = stack_loc
-    sbiw r28, 2   ; Y -= 2
+    in r2, 61 ; KERNEL_CONTEXT = SP
+    in r3, 62
+    sts KERNEL_CONTEXT, r2
+    sts KERNEL_CONTEXT+1, r3
 
     in r0, 63 ; Store SREG
     cli
-    out 61, r28 ; SP = Y
-    out 62, r29
+    out 61, r22 ; SP = stack_loc
+    out 62, r23
     out 63, r0 ; Restore SREG
     movw r30, r24 ; Z = f
+    movw r24, r22 ; f.arg0 = stack_loc
     icall         ; Z()
     ; It shouldn't return...
     ; rjmp oh_no_bad_stuff
+_l2:
+    rjmp _l2
 _end__asm_start_fn:
     .size _asm_start_fn, _end__asm_start_fn-_asm_start_fn
 
