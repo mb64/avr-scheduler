@@ -14,7 +14,7 @@
   "linker": "avr-gcc",
   "linker-flavor": "gcc",
   "pre-link-args": {
-    "gcc": ["src/interrupt_vector.S", "-Os", "-mmcu=attiny85"]
+    "gcc": ["src/interrupt_vector.S", "src/context_switch.S", "src/entry.S", "-Os", "-mmcu=attiny85"]
   },
   "exe-suffix": ".elf",
   "post-link-args": {
