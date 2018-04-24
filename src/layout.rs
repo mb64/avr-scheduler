@@ -1,14 +1,13 @@
 
-use arduino_attiny::*;
 use core::{ptr,mem};
 
 use process;
 
 #[repr(C,packed)]
 pub struct ProcInfo {
-    context: process::ProcContext,
-    priority: i8, // TODO these things
-    asleep: u8,
+    pub context: process::ProcContext,
+    pub priority: i8, // TODO Assign meaning to these things
+    pub asleep: u8,
 }
 
 pub const STACK_SIZE: usize = 0x80;
@@ -25,21 +24,14 @@ pub const FIRST_STACK: usize = 0x260;
 
 impl ProcInfo {
     // Returns true on success, false on failure
-    pub fn fork<F>(f: F, priority: i8) -> bool
-        where F: FnOnce()
+    pub fn fork<F>(f: extern "C" fn() -> !, priority: i8) -> bool
     {
         let info = ProcInfo {
-            context: process::ProcContext::new(0),
+            context: process::ProcContext::new(0xffff),
             priority: priority,
             asleep: 0,
-        }
+        };
         unsafe {
-            extern "C" fn wrapper(ctx: *mut process::ProcContext) -> ! {
-                f();
-                ptr::write(ctx as *mut u32, 0); // Mark the stack as free
-                loop {} // It'll be interrupted, the execution will move to 
-                        // another process, and this'll be forgotten.
-            }
             let mut addr: usize = FIRST_STACK - 4; // size of ProcInfo = 4
             while (*(addr as *const ProcInfo)).context.sp != 0 {
                 addr -= STACK_SIZE;
@@ -47,8 +39,10 @@ impl ProcInfo {
                     return false;
                 }
             }
-            ptr::write(addr as *mut ProcInfo, info);
-            process::ProcContext::start_fn(wrapper, addr);
+            ptr::write_volatile(addr as *mut ProcInfo, info);
+            // These have the same calling convention
+            let f_with_arg: extern "C" fn(x: *mut process::ProcContext) -> ! = mem::transmute(f);
+            process::ProcContext::start_fn(f_with_arg, addr);
         }
         true
     }
@@ -57,16 +51,18 @@ impl ProcInfo {
         let sp: usize;
         unsafe {
             asm!("
-                 in r30, 61
-                 in r31, 62
+                 in r2, 61
+                 in r3, 62
+
+                 movw $0, r2
                  "
-                :"={Z}"(sp)
+                :"=w"(sp)
                 : // No inputs
-                : // No clobbers
+                : "r2","r3"
                 :"volatile");
         }
         let mut next_stack_addr: usize = FIRST_STACK - STACK_SIZE;
-        while next_stack_addr > usize {
+        while next_stack_addr > sp {
             next_stack_addr -= STACK_SIZE;
         }
         let this_stack_start = next_stack_addr + STACK_SIZE;
@@ -74,3 +70,31 @@ impl ProcInfo {
     }
 }
 
+pub fn die() -> ! {
+    unsafe {
+        ptr::write_volatile(ProcInfo::this_proc() as *mut u32, 0);
+        loop { }
+    }
+}
+
+pub struct StacksIter {
+    addr: usize,
+}
+impl Default for StacksIter {
+    fn default() -> Self {
+        StacksIter {
+            addr: 0x60,
+        }
+    }
+}
+impl Iterator for StacksIter {
+    type Item = usize;
+    fn next(&mut self) -> Option<usize> {
+        self.addr += STACK_SIZE;
+        if self.addr > FIRST_STACK {
+            None
+        } else {
+            Some(self.addr)
+        }
+    }
+}

@@ -12,14 +12,14 @@ _asm_entry_point:
     cli
     ldi r22, 96
     ldi r23, 2
-    in 61, r22
-    in 62, r23
-    ldi r0, 0x00
-    push r0
-    push r0
-    ldi r0, 0xff
-    push r0
-    push r0
+    out 61, r22
+    out 62, r23
+    ldi r16, 0x00
+    push r16
+    push r16
+    ldi r16, 0xff
+    push r16
+    push r16
 
     ;; Global interrupt enable
     sei

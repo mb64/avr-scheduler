@@ -1,7 +1,7 @@
 
 use core::ptr;
 use arduino_attiny::*;
-use util::delay_ms;
+use util::busy_loop_ms;
 
 #[lang = "eh_personality"]
 #[no_mangle]
@@ -16,9 +16,9 @@ pub extern "C" fn oh_no_bad_stuff(_msg: (), _file: &'static str, _line: u32) -> 
         ptr::write_volatile(DDRB, 0x1F);
         loop {
             ptr::write_volatile(PORTB, 0x1F);
-            delay_ms(50);
+            busy_loop_ms(50);
             ptr::write_volatile(PORTB, 0x1F);
-            delay_ms(500);
+            busy_loop_ms(500);
         }
     }
 }

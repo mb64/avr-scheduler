@@ -6,7 +6,7 @@ use util::*;
 #[derive(Clone,Copy)]
 #[repr(C,packed)]
 pub struct ProcContext {
-    sp: u16,
+    pub sp: u16,
 }
 
 #[no_mangle]
@@ -62,17 +62,17 @@ pub unsafe fn test() {
     loop {
         for _ in 0..5 {
             orange_led.on();
-            delay_ms(100);
+            busy_loop_ms(100);
             orange_led.off();
-            delay_ms(100);
+            busy_loop_ms(100);
         }
 
         KERNEL_CONTEXT.switch_to(*proc_context_ptr);
 
         orange_led.on();
-        delay_ms(500);
+        busy_loop_ms(500);
         orange_led.off();
-        delay_ms(500);
+        busy_loop_ms(500);
 
         KERNEL_CONTEXT.switch_to(*proc_context_ptr);
     }
@@ -84,9 +84,9 @@ pub extern "C" fn proc_fn(my_context_ptr: *mut ProcContext) -> ! {
     loop {
         for _ in 0..5 {
             green_led.off();
-            delay_ms(100);
+            busy_loop_ms(100);
             green_led.on();
-            delay_ms(100);
+            busy_loop_ms(100);
         }
         unsafe { _asm_switch_context(my_context_ptr, KERNEL_CONTEXT.sp); }
         //unsafe { (&mut *my_context_ptr).switch_to(KERNEL_CONTEXT); }
