@@ -1,6 +1,6 @@
 
 use core::ptr;
-use arduino_attiny::*;
+use attiny_defs::*;
 use util::busy_loop_ms;
 
 #[lang = "eh_personality"]

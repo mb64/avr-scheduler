@@ -1,4 +1,5 @@
 
+use attiny_defs::*;
 use core::{ptr,mem};
 
 use process;
@@ -48,19 +49,7 @@ impl ProcInfo {
     }
 
     pub fn this_proc() -> *const Self {
-        let sp: usize;
-        unsafe {
-            asm!("
-                 in r2, 61
-                 in r3, 62
-
-                 movw $0, r2
-                 "
-                :"=w"(sp)
-                : // No inputs
-                : "r2","r3"
-                :"volatile");
-        }
+        let sp = *SP as usize;
         let mut next_stack_addr: usize = FIRST_STACK - STACK_SIZE;
         while next_stack_addr > sp {
             next_stack_addr -= STACK_SIZE;

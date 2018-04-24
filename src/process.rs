@@ -1,5 +1,5 @@
 
-use arduino_attiny::*;
+use attiny_defs::*;
 use core::ptr;
 use util::*;
 

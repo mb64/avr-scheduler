@@ -25,16 +25,20 @@ test-context-switch: Xargo.toml
 		RUST_TARGET_PATH=$(shell pwd) \
 		rustup run avr-old xargo build --target avr-attiny85 --release --verbose --features test_context_switch
 
+test-interrupts: Xargo.toml
+	XARGO_RUST_SRC=$(shell pwd)/../avr-rust/rust/src \
+		RUST_TARGET_PATH=$(shell pwd) \
+		rustup run avr-old xargo build --target avr-attiny85 --release --verbose --features test_interrupts
+
 upload-old: elf-old upload-this
 
 all: elf-old
 upload: upload-old
 
 debug: elf-old
-	simavr -gdb -m attiny85 target/avr-attiny85/release/scheduler.elf &
+	simavr -gdb -m attiny85 -f 1000000 target/avr-attiny85/release/scheduler.elf &
 	avr-gdb target/avr-attiny85/release/scheduler.elf \
 		-ex 'target remote localhost:1234' \
 		-ex 'layout asm' \
 		-ex 'layout reg' \
-		-ex 'break _asm_start_fn' \
-		-ex 'continue'
+		-ex 'break _asm_start_fn'

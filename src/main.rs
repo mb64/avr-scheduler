@@ -5,8 +5,7 @@
 #![no_std]
 #![no_main]
 
-extern crate arduino_attiny;
-
+pub mod attiny85_defs;
 pub mod process;
 pub mod lang;
 pub mod util;
@@ -16,16 +15,15 @@ pub mod interrupts;
 use util::{LED,Pin,busy_loop_ms};
 
 #[cfg(feature = "test_context_switch")]
-#[no_mangle]
-pub extern "C" fn main() {
+pub fn main() {
     unsafe {
         process::test();
     }
 }
 
-#[cfg(not(feature = "test_context_switch"))]
-#[no_mangle]
-pub extern "C" fn main() {
+#[cfg(all(not(feature = "test_context_switch"),
+          feature = "test_interrupts"))]
+pub fn main() {
     let green_led = LED::new(Pin::Pin2);
     loop {
         green_led.on();
@@ -33,4 +31,9 @@ pub extern "C" fn main() {
         green_led.off();
         busy_loop_ms(200);
     }
+}
+
+#[cfg(all(not(feature = "test_context_switch"),
+          not(feature = "test_interrupts")))]
+pub fn main() {
 }

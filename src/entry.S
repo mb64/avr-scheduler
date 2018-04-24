@@ -6,7 +6,11 @@
 
     .type _asm_entry_point, @function
     .globl _asm_entry_point
+    .globl __vector_0
+    .globl main
 _asm_entry_point:
+__vector_0:
+main:
     ;; Set up stack
     ;; (Be sure to put non-zero junk in ProcInfo)
     cli

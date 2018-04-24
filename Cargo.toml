@@ -9,3 +9,4 @@ path = "../ruduino-attiny"
 
 [features]
 test_context_switch = []
+test_interrupts = []

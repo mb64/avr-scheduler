@@ -1,5 +1,5 @@
 
-use arduino_attiny::*;
+use attiny85_defs::*;
 use core::ptr;
 
 pub const CPU_SPEED_HZ: u32 = 2_000_000;
