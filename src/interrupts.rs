@@ -3,6 +3,7 @@ use attiny85_defs::*;
 use core::ptr;
 
 use layout;
+use process;
 use super::main;
 
 #[no_mangle]
@@ -11,25 +12,27 @@ pub extern "C" fn k_main() -> ! {
         // Set up timers -- interrupt every 1.6 ms = 200 counts * 8 prescaled
 
         // Enable timer interrupts
-        #[allow(non_snake_case)]
-        let old_TIMSK = *TIMSK;
-        ptr::write_volatile(TIMSK, old_TIMSK | OCIE0A);
+        TIMSK::modify(|old| { old | OCIE0A });
 
         // Interrupt when counter = 200
-        ptr::write_volatile(OCR0A, 200);
+        OCR0A::set(200);
 
         // Clear Timer on Compare Match
-        #[allow(non_snake_case)]
-        let old_TCCR0A = *TCCR0A;
-        ptr::write_volatile(TCCR0A, old_TCCR0A | WGM01);
+        TCCR0A::modify(|old| { old | WGM01 });
 
         // Prescaler = 1 counter inc every 8 clks
-        #[allow(non_snake_case)]
-        let old_TCCR0B = *TCCR0B;
-        ptr::write_volatile(TCCR0B, old_TCCR0B | CS01);
+        TCCR0B::modify(|old| { old | CS01 });
     }
     main();
-    layout::die()
+    die()
+}
+
+pub fn die() -> ! {
+    unsafe {
+        ptr::write_volatile(layout::get_proc_info_addr() as *mut u32, 0);
+        run_scheduler(); // Give the leftover time to other processes
+        loop { }
+    }
 }
 
 #[cfg(feature = "test_interrupts")]
@@ -42,20 +45,56 @@ pub extern "avr-interrupt" fn __vector_10() {
     unsafe {
         counter += 1;
         if counter == 250 {
-            let old_portb = *PORTB;
-            ptr::write_volatile(PORTB, old_portb ^ PORTB0);
+            PORTB::modify(|old| { old ^ PORTB0 });
             counter = 0;
         }
     }
-    // Schedule things...
+}
+
+pub unsafe fn run_scheduler() {
+    // Current (naive) algorithm: just pick the next one
+    let new_proc: process::ProcContext = {
+        let current_stack = SP::get() as usize;
+        let mut awake_procs = layout::StacksIter::default()
+            .filter(|&addr| layout::is_occupied(addr))
+            .filter(|&addr| (*layout::ProcInfo::at(addr)).asleep == 0)
+            .peekable();
+        let first_stack: Option<usize> = awake_procs.peek().map(|&x| x);
+        let next_stack_opt = awake_procs
+            .find(|&stack_addr| stack_addr > current_stack+layout::STACK_SIZE)
+            .or(first_stack);
+        if let Some(next_stack) = next_stack_opt {
+            (*layout::ProcInfo::at(next_stack)).context
+        } else {
+            // Without any processes, just wait...
+            loop {}
+        }
+    };
+    let this_proc_addr = layout::get_proc_info_addr();
+    let this_proc = &mut (*this_proc_addr).context;
+    this_proc.switch_to(new_proc);
+}
+
+// Should only be called every 1.6 ms
+unsafe fn do_bookkeeping() {
+    // Decrement asleep counts -- this is currently the only bookkeeping that happens
+    for addr in layout::StacksIter::default()
+            .filter(|&addr| layout::is_occupied(addr)) {
+        let info = layout::ProcInfo::at(addr);
+        if (*info).asleep != 0 {
+            (*info).asleep -= 1;
+        }
+    }
 }
 
 #[cfg(not(feature = "test_interrupts"))]
 #[no_mangle]
 pub extern "avr-interrupt" fn __vector_10() {
     unsafe {
-        let old_portb = *PORTB;
-        ptr::write_volatile(PORTB, old_portb ^ PORTB0);
+        uninterrupted(|| {
+            do_bookkeeping();
+            run_scheduler();
+        });
     }
-    // Schedule things...
 }
+

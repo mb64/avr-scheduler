@@ -1,6 +1,5 @@
 
 use attiny85_defs::*;
-use core::ptr;
 
 pub const CPU_SPEED_HZ: u32 = 2_000_000;
 
@@ -14,48 +13,59 @@ pub fn busy_loop_ms(ms: u16) {
 
 #[derive(Clone,Copy)]
 pub enum Pin {
-    Pin0 = 0,
-    Pin1 = 1,
-    Pin2 = 2,
-    Pin3 = 3,
-    Pin4 = 4,
-    Pin5 = 5,
+    Pin0,
+    Pin1,
+    Pin2,
+    Pin3,
+    Pin4,
+    Pin5,
 }
 impl Pin {
-    fn to_mask(self) -> u8 {
-        1 << (self as u8)
+    fn to_portb_mask(self) -> Mask<PORTB> {
+        match self {
+            Pin::Pin0 => PORTB0,
+            Pin::Pin1 => PORTB1,
+            Pin::Pin2 => PORTB2,
+            Pin::Pin3 => PORTB3,
+            Pin::Pin4 => PORTB4,
+            Pin::Pin5 => PORTB5,
+        }
+    }
+    fn to_ddrb_mask(self) -> Mask<DDRB> {
+        match self {
+            Pin::Pin0 => DDB0,
+            Pin::Pin1 => DDB1,
+            Pin::Pin2 => DDB2,
+            Pin::Pin3 => DDB3,
+            Pin::Pin4 => DDB4,
+            Pin::Pin5 => DDB5,
+        }
     }
 }
 
 #[derive(Clone,Copy)]
 pub struct LED {
-    portb_mask: u8,
+    portb_mask: Mask<PORTB>,
 }
 
 impl LED {
     pub fn new(pin: Pin) -> Self {
-        let mask = pin.to_mask();
         unsafe {
-            let orig_ddrb = *DDRB;
-            ptr::write_volatile(DDRB, orig_ddrb | mask);
+            DDRB::modify(|old| { old | pin.to_ddrb_mask() });
         }
         LED {
-            portb_mask: mask,
+            portb_mask: pin.to_portb_mask(),
         }
     }
     pub fn on(self) {
         unsafe {
-            let orig_portb = *PORTB;
-            ptr::write_volatile(PORTB, orig_portb | self.portb_mask);
+            PORTB::modify(|old| { old | self.portb_mask });
         }
     }
     pub fn off(self) {
         unsafe {
-            let orig_portb = *PORTB;
-            ptr::write_volatile(PORTB, orig_portb & (!self.portb_mask));
+            PORTB::modify(|old| { old & (!self.portb_mask) });
         }
     }
 }
-
-
 

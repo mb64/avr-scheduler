@@ -1,14 +1,11 @@
 
-use attiny_defs::*;
-use core::ptr;
-use util::*;
-
 #[derive(Clone,Copy)]
 #[repr(C,packed)]
 pub struct ProcContext {
     pub sp: u16,
 }
 
+#[cfg(feature = "test_context_switch")]
 #[no_mangle]
 pub static mut KERNEL_CONTEXT: ProcContext = ProcContext {
     sp: 0,
@@ -16,7 +13,7 @@ pub static mut KERNEL_CONTEXT: ProcContext = ProcContext {
 
 extern "C" {
     fn _asm_switch_context(from: *mut ProcContext, to: u16);
-    fn _asm_start_fn(f: extern "C" fn(*mut ProcContext) -> !, stack_loc: usize);
+    fn _asm_start_fn(f: extern "C" fn(*mut ProcContext), stack_loc: usize);
 }
 
 impl ProcContext {
@@ -26,7 +23,7 @@ impl ProcContext {
         }
     }
 
-    pub unsafe fn start_fn(f: extern "C" fn(*mut ProcContext) -> !, stack_loc: usize) -> *const Self {
+    pub unsafe fn start_fn(f: extern "C" fn(*mut ProcContext), stack_loc: usize) -> *const Self {
         _asm_start_fn(f, stack_loc);
         stack_loc as *const Self
     }
@@ -37,7 +34,21 @@ impl ProcContext {
 
 #[cfg(feature = "test_context_switch")]
 pub unsafe fn test() {
-    ptr::write_volatile(DDRB, 0x1F);
+    use util::*;
+
+    extern "C" fn proc_fn(my_context_ptr: *mut ProcContext) -> ! {
+        let green_led = LED::new(Pin::Pin2);
+        loop {
+            for _ in 0..5 {
+                green_led.off();
+                busy_loop_ms(100);
+                green_led.on();
+                busy_loop_ms(100);
+            }
+            // unsafe { _asm_switch_context(my_context_ptr, KERNEL_CONTEXT.sp); }
+            unsafe { (&mut *my_context_ptr).switch_to(KERNEL_CONTEXT); }
+        }
+    }
 
     let new_stack_addr: usize = 0x160;
     // +------- 0x260 (presumably the start)
@@ -75,21 +86,6 @@ pub unsafe fn test() {
         busy_loop_ms(500);
 
         KERNEL_CONTEXT.switch_to(*proc_context_ptr);
-    }
-}
-
-#[cfg(feature = "test_context_switch")]
-pub extern "C" fn proc_fn(my_context_ptr: *mut ProcContext) -> ! {
-    let green_led = LED::new(Pin::Pin2);
-    loop {
-        for _ in 0..5 {
-            green_led.off();
-            busy_loop_ms(100);
-            green_led.on();
-            busy_loop_ms(100);
-        }
-        unsafe { _asm_switch_context(my_context_ptr, KERNEL_CONTEXT.sp); }
-        //unsafe { (&mut *my_context_ptr).switch_to(KERNEL_CONTEXT); }
     }
 }
 

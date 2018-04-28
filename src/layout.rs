@@ -1,5 +1,5 @@
 
-use attiny_defs::*;
+use attiny85_defs::*;
 use core::{ptr,mem};
 
 use process;
@@ -7,7 +7,7 @@ use process;
 #[repr(C,packed)]
 pub struct ProcInfo {
     pub context: process::ProcContext,
-    pub priority: i8, // TODO Assign meaning to these things
+    pub priority: i8, // TODO Assign meaning to the priority
     pub asleep: u8,
 }
 
@@ -19,13 +19,13 @@ pub const FIRST_STACK: usize = 0x260;
  * - Even intervals of STACK_SIZE
  * - First 4 bytes go to the ProcInfo struct
  * - Free stack space will have a zero'd out pointer
- * - STACK_SIZE will ALWAYS be a multiple of two
+ * - STACK_SIZE will always be a power of two
  *      (makes it easier for a process to find its ProcInfo)
  */
 
 impl ProcInfo {
     // Returns true on success, false on failure
-    pub fn fork<F>(f: extern "C" fn() -> !, priority: i8) -> bool
+    pub fn fork(f: extern "C" fn(), priority: i8) -> bool
     {
         let info = ProcInfo {
             context: process::ProcContext::new(0xffff),
@@ -42,28 +42,26 @@ impl ProcInfo {
             }
             ptr::write_volatile(addr as *mut ProcInfo, info);
             // These have the same calling convention
-            let f_with_arg: extern "C" fn(x: *mut process::ProcContext) -> ! = mem::transmute(f);
+            let f_with_arg: extern "C" fn(x: *mut process::ProcContext) = mem::transmute(f);
             process::ProcContext::start_fn(f_with_arg, addr);
         }
         true
     }
-
-    pub fn this_proc() -> *const Self {
-        let sp = *SP as usize;
-        let mut next_stack_addr: usize = FIRST_STACK - STACK_SIZE;
-        while next_stack_addr > sp {
-            next_stack_addr -= STACK_SIZE;
-        }
-        let this_stack_start = next_stack_addr + STACK_SIZE;
-        (this_stack_start - 4) as *const Self
+    pub unsafe fn at(stack_addr: usize) -> *mut Self {
+        (stack_addr - 4) as *mut Self
     }
 }
 
-pub fn die() -> ! {
-    unsafe {
-        ptr::write_volatile(ProcInfo::this_proc() as *mut u32, 0);
-        loop { }
+#[inline(never)]
+#[no_mangle]
+pub unsafe extern "C" fn get_proc_info_addr() -> *mut ProcInfo {
+    let sp = SP::get() as usize;
+    let mut next_stack_addr: usize = FIRST_STACK - STACK_SIZE;
+    while next_stack_addr > sp {
+        next_stack_addr -= STACK_SIZE;
     }
+    let this_stack_start = next_stack_addr + STACK_SIZE;
+    ProcInfo::at(this_stack_start)
 }
 
 pub struct StacksIter {
@@ -87,3 +85,11 @@ impl Iterator for StacksIter {
         }
     }
 }
+
+pub fn is_occupied(addr: usize) -> bool {
+    unsafe {
+        let info_addr = ProcInfo::at(addr);
+        (*info_addr).context.sp != 0
+    }
+}
+

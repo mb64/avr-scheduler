@@ -1,16 +1,22 @@
 
 use core::ptr;
 use core::marker::PhantomData;
-use core::ops::{BitOr, BitAnd, Not};
+use core::ops::{BitOr, BitAnd, BitXor, Not};
 
-// Macros are a modified version of those from AVR-Rust's `ruduino`
-// library.
-// See 
 
-#[derive(Clone,Copy)]
+pub fn uninterrupted<F: FnOnce()>(f: F) {
+    let saved_sreg_i: u8 = unsafe { ptr::read_volatile(SREG::ADDRESS) | I.value };
+    unsafe { asm!("cli" :::: "volatile"); }
+    f();
+    unsafe {
+        let old_sreg = ptr::read_volatile(SREG::ADDRESS);
+        ptr::write_volatile(SREG::ADDRESS, old_sreg | saved_sreg_i);
+    }
+}
+
 pub struct Mask<T> {
     pub value: u8,
-    phantom: PhantomData<T>,
+    pub phantom: PhantomData<T>,
 }
 
 macro_rules! mask {
@@ -21,6 +27,13 @@ macro_rules! mask {
         }
     }
 }
+
+impl<T> Clone for Mask<T> {
+    fn clone(&self) -> Self {
+        mask!(self.value)
+    }
+}
+impl<T> Copy for Mask<T> { }
 
 impl<T> BitAnd for Mask<T> {
     type Output = Self;
@@ -34,6 +47,12 @@ impl<T> BitOr for Mask<T> {
         mask!(self.value | rhs.value)
     }
 }
+impl<T> BitXor for Mask<T> {
+    type Output = Self;
+    fn bitxor(self, rhs: Self) -> Self {
+        mask!(self.value ^ rhs.value)
+    }
+}
 impl<T> Not for Mask<T> {
     type Output = Self;
     fn not(self) -> Self {
@@ -41,22 +60,33 @@ impl<T> Not for Mask<T> {
     }
 }
 
-pub trait Reg8 {
-    const address: *mut u8;
-    fn get() -> u8 {
-        *Self::address
+pub trait Reg8: Sized {
+    const ADDRESS: *mut u8;
+    unsafe fn get() -> u8 {
+        ptr::read_volatile(Self::ADDRESS)
     }
-    fn set(new_val: u8) {
-        ptr::write_volatile(Self::address, new_val);
+    unsafe fn set(new_val: u8) {
+        ptr::write_volatile(Self::ADDRESS, new_val);
     }
-    fn modify<F>(f: F)
+    unsafe fn modify<F>(f: F)
         where F: FnOnce(Mask<Self>) -> Mask<Self>
     {
-        let old_val: Mask<Self> = mask!(Self::get());
-        Self::set(f(old_val));
+        uninterrupted(|| {
+            let old_val: Mask<Self> = mask!(Self::get());
+            Self::set(f(old_val).value);
+        });
     }
 }
 
+pub trait Reg16: Sized {
+    const ADDRESS: *mut u16;
+    unsafe fn get() -> u16 {
+        ptr::read_volatile(Self::ADDRESS)
+    }
+    unsafe fn set(new_val: u16) {
+        ptr::write_volatile(Self::ADDRESS, new_val);
+    }
+}
 
 macro_rules! def_bit {
     ($reg:ident, -, $index:expr) => {};
@@ -71,7 +101,7 @@ macro_rules! def_reg {
     ($addr:expr, $name:ident, [$b7:tt, $b6:tt, $b5:tt, $b4:tt, $b3:tt, $b2:tt, $b1:tt, $b0:tt]) => {
         pub struct $name;
         impl Reg8 for $name {
-            const address: *mut u8 = $addr as *mut u8;
+            const ADDRESS: *mut u8 = $addr as *mut u8;
         }
         def_bit!($name, $b7, 0b1000_0000);
         def_bit!($name, $b6, 0b0100_0000);
@@ -85,9 +115,18 @@ macro_rules! def_reg {
     ($addr:expr, $name:ident) => {
         pub struct $name;
         impl Reg8 for $name {
-            const address: *mut u8 = $addr as *mut u8;
+            const ADDRESS: *mut u8 = $addr as *mut u8;
         }
     };
+}
+
+macro_rules! def_reg16 {
+    ($addr:expr, $name:ident) => {
+        pub struct $name;
+        impl Reg16 for $name {
+            const ADDRESS: *mut u16 = $addr as *mut u16;
+        }
+    }
 }
 
 def_reg!(0x5F, SREG,   [I,       T,       H,       S,       V,       N,       Z,       C      ]);
@@ -156,7 +195,6 @@ def_reg!(0x21 is reserved                                                       
 def_reg!(0x20 is reserved                                                                      );
 
 // 16-bit register pairs
-pub const ADC:   *mut u16 = ADCL   as *mut u16;
-pub const EEAR:  *mut u16 = EEARL  as *mut u16;
-pub const SP:    *mut u16 = SPL    as *mut u16;
-
+def_reg16!( ADCL::ADDRESS,  ADC);
+def_reg16!(EEARL::ADDRESS, EEAR);
+def_reg16!(  SPL::ADDRESS,   SP);

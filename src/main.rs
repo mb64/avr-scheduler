@@ -11,8 +11,9 @@ pub mod lang;
 pub mod util;
 pub mod layout;
 pub mod interrupts;
+pub mod interface;
 
-use util::{LED,Pin,busy_loop_ms};
+use interface::*;
 
 #[cfg(feature = "test_context_switch")]
 pub fn main() {
@@ -27,13 +28,31 @@ pub fn main() {
     let green_led = LED::new(Pin::Pin2);
     loop {
         green_led.on();
-        busy_loop_ms(200);
+        util::busy_loop_ms(200);
         green_led.off();
-        busy_loop_ms(200);
+        util::busy_loop_ms(200);
     }
 }
 
 #[cfg(all(not(feature = "test_context_switch"),
           not(feature = "test_interrupts")))]
 pub fn main() {
+    fork(blink_green);
+    let orange_led = LED::new(Pin::Pin0);
+    loop {
+        orange_led.on();
+        util::busy_loop_ms(210);
+        orange_led.off();
+        util::busy_loop_ms(210);
+    }
+}
+
+extern "C" fn blink_green() {
+    let green_led = LED::new(Pin::Pin2);
+    loop {
+        green_led.off();
+        util::busy_loop_ms(250);
+        green_led.on();
+        util::busy_loop_ms(250);
+    }
 }

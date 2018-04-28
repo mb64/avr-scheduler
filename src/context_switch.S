@@ -61,7 +61,7 @@ _end__asm_switch_context:
 
     .globl _asm_start_fn
     .type _asm_start_fn @function
-; extern "C" fn _asm_start_fn(f: extern "C" fn(*mut ProcContext) -> !, stack_loc: usize);
+; extern "C" fn _asm_start_fn(f: extern "C" fn(*mut ProcContext), stack_loc: usize);
 _asm_start_fn:
     ; f: r24r25
     ; stack_loc: r22r23
@@ -85,21 +85,35 @@ _asm_start_fn:
     push r28
     push r29
 
-    in r2, 61 ; KERNEL_CONTEXT = SP
+    ; Compensate for SP pointing to one below the last item
+    subi r22, 1 ; stack_loc -= 1
+    sbci r23, 0
+
+    movw r30, r24 ; Z = f
+    rcall get_proc_info_addr
+    ; Returns in r24r25
+    movw r28, r24
+    in r2, 61 ; my_stack = SP
     in r3, 62
-    sts KERNEL_CONTEXT, r2
-    sts KERNEL_CONTEXT+1, r3
+    st  Y,   r2
+    std Y+1, r3
 
     in r0, 63 ; Store SREG
     cli
     out 61, r22 ; SP = stack_loc
     out 62, r23
     out 63, r0 ; Restore SREG
-    movw r30, r24 ; Z = f
     movw r24, r22 ; f.arg0 = stack_loc
     icall         ; Z()
-    ; It shouldn't return...
-    ; rjmp oh_no_bad_stuff
+    ; When/if it returns, the ProcContext needs to be cleared
+    rcall get_proc_info_addr
+    ; Returns in r24r25
+    movw r28, r24
+    ldi r16, 0
+    st  Y,   r16
+    std Y+1, r16
+    std Y+2, r16
+    std Y+3, r16
 _l2:
     rjmp _l2
 _end__asm_start_fn:
