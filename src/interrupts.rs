@@ -61,7 +61,7 @@ pub extern "avr-interrupt" fn __vector_10() {
 
 pub unsafe fn run_scheduler() {
     // Current (naive) algorithm: just pick the next one
-    let new_proc: process::ProcContext = {
+    let new_proc: &mut process::ProcContext = {
         let current_stack = SP::get() as usize;
         let mut awake_procs = layout::StacksIter::default()
             .filter(|&addr| layout::is_occupied(addr))
@@ -72,10 +72,10 @@ pub unsafe fn run_scheduler() {
             .find(|&stack_addr| stack_addr > current_stack+layout::STACK_SIZE)
             .or(first_stack);
         if let Some(next_stack) = next_stack_opt {
-            (*layout::ProcInfo::at(next_stack)).context
+            &mut (*layout::ProcInfo::at(next_stack)).context
         } else {
-            // Without any processes, just wait...
-            loop {}
+            // Without any other processes, just keep on with the current one
+            return
         }
     };
     let this_proc_addr = layout::get_proc_info_addr();
@@ -86,8 +86,8 @@ pub unsafe fn run_scheduler() {
 // Should only be called every 3.2 ms
 unsafe fn do_bookkeeping() {
     // Decrement asleep counts -- this is currently the only bookkeeping that happens
-    for addr in layout::StacksIter::default()
-            .filter(|&addr| layout::is_occupied(addr)) {
+    for addr in layout::StacksIter::default() {
+        //.filter(|&addr| layout::is_occupied(addr)) {
         let info = layout::ProcInfo::at(addr);
         if (*info).asleep != 0 {
             (*info).asleep -= 1;
@@ -99,10 +99,7 @@ unsafe fn do_bookkeeping() {
 #[no_mangle]
 pub extern "avr-interrupt" fn __vector_10() {
     unsafe {
-        uninterrupted(|| {
-            do_bookkeeping();
-            run_scheduler();
-        });
+        do_bookkeeping();
+        run_scheduler();
     }
 }
-

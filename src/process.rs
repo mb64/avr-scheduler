@@ -23,11 +23,13 @@ impl ProcContext {
         }
     }
 
-    pub unsafe fn start_fn(f: extern "C" fn(*mut ProcContext), stack_loc: usize) -> *const Self {
+    pub unsafe fn start_fn(f: extern "C" fn(*mut ProcContext), stack_loc: usize) -> *mut Self {
         _asm_start_fn(f, stack_loc);
-        stack_loc as *const Self
+        stack_loc as *mut Self
     }
-    pub unsafe fn switch_to(&mut self, to: ProcContext) {
+    pub unsafe fn switch_to(&mut self, to: &mut ProcContext) {
+        let dest = to.sp;
+        to.sp = 0; // Zero it out so it won't get reused because it's now outdated
         _asm_switch_context(self as *mut Self, to.sp);
     }
 }
@@ -46,7 +48,7 @@ pub unsafe fn test() {
                 busy_loop_ms(100);
             }
             // unsafe { _asm_switch_context(my_context_ptr, KERNEL_CONTEXT.sp); }
-            unsafe { (&mut *my_context_ptr).switch_to(KERNEL_CONTEXT); }
+            unsafe { (&mut *my_context_ptr).switch_to(&mut KERNEL_CONTEXT); }
         }
     }
 
@@ -54,12 +56,12 @@ pub unsafe fn test() {
     // +------- 0x260 (presumably the start)
     // | |
     // | | main stack
-    // | v 
+    // | v
     // |
     // +------- 0x160 proc's stack start
     // | |
     // | | proc's stack
-    // | v 
+    // | v
     // |
     // +------- 0x060
     // | IO Registers,
@@ -78,14 +80,13 @@ pub unsafe fn test() {
             busy_loop_ms(100);
         }
 
-        KERNEL_CONTEXT.switch_to(*proc_context_ptr);
+        KERNEL_CONTEXT.switch_to(&mut *proc_context_ptr);
 
         orange_led.on();
         busy_loop_ms(500);
         orange_led.off();
         busy_loop_ms(500);
 
-        KERNEL_CONTEXT.switch_to(*proc_context_ptr);
+        KERNEL_CONTEXT.switch_to(&mut *proc_context_ptr);
     }
 }
-

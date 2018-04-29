@@ -19,6 +19,7 @@ pub const FIRST_STACK: usize = 0x260;
  * - Even intervals of STACK_SIZE
  * - First 4 bytes go to the ProcInfo struct
  * - Free stack space will have a zero'd out pointer
+ *   (so will currently running processes)
  * - STACK_SIZE will always be a power of two
  *      (makes it easier for a process to find its ProcInfo)
  */
@@ -28,7 +29,7 @@ impl ProcInfo {
     pub fn fork(f: extern "C" fn(), priority: i8) -> bool
     {
         let info = ProcInfo {
-            context: process::ProcContext::new(0xffff),
+            context: process::ProcContext::new(0),
             priority: priority,
             asleep: 0,
         };
@@ -92,4 +93,3 @@ pub fn is_occupied(addr: usize) -> bool {
         (*info_addr).context.sp != 0
     }
 }
-

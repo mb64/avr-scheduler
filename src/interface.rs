@@ -3,6 +3,8 @@
 // However, it's currently fantastically incomplete, so for anything
 // more complex than blinking lights, that's not yet possible.
 
+use core::ptr;
+
 use layout;
 use interrupts;
 
@@ -11,8 +13,8 @@ pub use attiny85_defs::uninterrupted;
 pub use interrupts::die;
 
 pub fn delay_ms(ms: u16) {
-    // 3.2 ms counts
-    let mut counts = (ms*10) >> 5;
+    // 4 ms counts
+    let mut counts = ms >> 2;
     unsafe {
         let proc_info = layout::get_proc_info_addr();
         while counts > 255 {
@@ -20,6 +22,9 @@ pub fn delay_ms(ms: u16) {
             (*proc_info).asleep = 255;
             interrupts::run_scheduler();
         }
+        //for _ in 0..counts {
+        //    interrupts::run_scheduler();
+        //}
         (*proc_info).asleep = counts as u8;
         interrupts::run_scheduler();
     }
