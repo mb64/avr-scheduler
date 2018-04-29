@@ -8,11 +8,21 @@ use super::main;
 
 #[no_mangle]
 pub extern "C" fn k_main() -> ! {
+    // Don't initialize timers yet
+    // If it's only single-threaded, there's no need, so it happens on calls
+    // to fork()
+
+    main();
+    die()
+}
+
+pub fn init_timers() {
     unsafe {
-        // Set up timers -- interrupt every 1.6 ms = 200 counts * 8 prescaled
+        // Set up timers -- interrupt every 3.2 ms = 200 counts * 64 prescaled / 4_000_000 Hz
 
         // Enable timer interrupts
         TIMSK::modify(|old| { old | OCIE0A });
+        asm!("sei" :::: "volatile");
 
         // Interrupt when counter = 200
         OCR0A::set(200);
@@ -20,11 +30,9 @@ pub extern "C" fn k_main() -> ! {
         // Clear Timer on Compare Match
         TCCR0A::modify(|old| { old | WGM01 });
 
-        // Prescaler = 1 counter inc every 8 clks
-        TCCR0B::modify(|old| { old | CS01 });
+        // Prescaler = 1 counter inc every 64 clks
+        TCCR0B::modify(|old| { old | CS01 | CS00 });
     }
-    main();
-    die()
 }
 
 pub fn die() -> ! {
@@ -75,7 +83,7 @@ pub unsafe fn run_scheduler() {
     this_proc.switch_to(new_proc);
 }
 
-// Should only be called every 1.6 ms
+// Should only be called every 3.2 ms
 unsafe fn do_bookkeeping() {
     // Decrement asleep counts -- this is currently the only bookkeeping that happens
     for addr in layout::StacksIter::default()

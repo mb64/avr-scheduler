@@ -11,8 +11,8 @@ pub use attiny85_defs::uninterrupted;
 pub use interrupts::die;
 
 pub fn delay_ms(ms: u16) {
-    // 1.6 ms counts
-    let mut counts = (ms*10) >> 4;
+    // 3.2 ms counts
+    let mut counts = (ms*10) >> 5;
     unsafe {
         let proc_info = layout::get_proc_info_addr();
         while counts > 255 {
@@ -26,5 +26,6 @@ pub fn delay_ms(ms: u16) {
 }
 
 pub fn fork(new_proc: extern "C" fn()) -> bool {
+    interrupts::init_timers();
     layout::ProcInfo::fork(new_proc, 0)
 }
