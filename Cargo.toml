@@ -3,6 +3,9 @@ name = "scheduler"
 version = "0.1.0"
 authors = ["Mark Barbone"]
 
+[profile.release]
+lto = true
+
 [features]
 test_context_switch = []
 test_interrupts = []
