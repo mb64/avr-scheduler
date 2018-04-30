@@ -12,6 +12,21 @@ pub extern "C" fn k_main() -> ! {
     // If it's only single-threaded, there's no need, so it happens on calls
     // to fork()
 
+    // When it restarts/resets, the memory is in an undefined state.
+    // The ProcInfos need to be reset to zero.
+    unsafe {
+        for stack in layout::StacksIter::default()
+            .take_while(|&addr| addr != layout::FIRST_STACK)
+            .map(|addr| layout::ProcInfo::at(addr))
+        {
+            ptr::write_volatile(stack, layout::ProcInfo {
+                context: process::ProcContext::new(0),
+                priority: 0,
+                asleep: 0,
+            });
+        }
+    }
+
     main();
     die()
 }
