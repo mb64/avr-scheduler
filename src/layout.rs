@@ -1,13 +1,11 @@
 
 use attiny85_defs::*;
-use core::{ptr,mem};
-
-use process;
+use core::ptr;
 
 #[repr(C,packed)]
 pub struct ProcInfo {
-    pub context: process::ProcContext,
-    pub priority: i8, // TODO Assign meaning to the priority
+    pub sp: u16,
+    pub alive: bool,
     pub asleep: u8,
 }
 
@@ -24,30 +22,40 @@ pub const FIRST_STACK: usize = 0x260;
  *      (makes it easier for a process to find its ProcInfo)
  */
 
+extern "C" {
+    fn _asm_switch_context(from: *mut u16, to: u16);
+    fn _asm_start_fn(f: extern "C" fn(), stack_loc: usize);
+}
+
 impl ProcInfo {
+    pub unsafe fn switch_to(&mut self, to: &mut Self) {
+        let dest_sp = to.sp;
+        to.sp = 0;
+        _asm_switch_context(&mut self.sp as *mut u16, dest_sp);
+    }
+
     // Returns true on success, false on failure
-    pub fn fork(f: extern "C" fn(), priority: i8) -> bool
+    pub fn fork(f: extern "C" fn()) -> bool
     {
         let info = ProcInfo {
-            context: process::ProcContext::new(0),
-            priority: priority,
+            sp: 0x0000,
+            alive: true,
             asleep: 0,
         };
         unsafe {
             let mut addr: usize = FIRST_STACK - 4; // size of ProcInfo = 4
-            while (*(addr as *const ProcInfo)).context.sp != 0 {
+            while (*(addr as *const ProcInfo)).sp != 0 {
                 addr -= STACK_SIZE;
-                if addr < 0x90 { // Last usable stack is at 0xD0
+                if addr < 0x90 { // TODO
                     return false;
                 }
             }
             ptr::write_volatile(addr as *mut ProcInfo, info);
-            // These have the same calling convention
-            let f_with_arg: extern "C" fn(x: *mut process::ProcContext) = mem::transmute(f);
-            process::ProcContext::start_fn(f_with_arg, addr);
+            _asm_start_fn(f, addr);
         }
         true
     }
+
     pub unsafe fn at(stack_addr: usize) -> *mut Self {
         (stack_addr - 4) as *mut Self
     }
@@ -87,9 +95,16 @@ impl Iterator for StacksIter {
     }
 }
 
+pub fn is_suspended(addr: usize) -> bool {
+    unsafe {
+        let info_addr = ProcInfo::at(addr);
+        (*info_addr).sp != 0
+    }
+}
+
 pub fn is_occupied(addr: usize) -> bool {
     unsafe {
         let info_addr = ProcInfo::at(addr);
-        (*info_addr).context.sp != 0
+        (*info_addr).alive
     }
 }

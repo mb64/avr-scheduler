@@ -3,8 +3,6 @@
 // However, it's currently fantastically incomplete, so for anything
 // more complex than blinking lights, that's not yet possible.
 
-use core::ptr;
-
 use layout;
 use interrupts;
 
@@ -22,9 +20,6 @@ pub fn delay_ms(ms: u16) {
             (*proc_info).asleep = 255;
             interrupts::run_scheduler();
         }
-        //for _ in 0..counts {
-        //    interrupts::run_scheduler();
-        //}
         (*proc_info).asleep = counts as u8;
         interrupts::run_scheduler();
     }
@@ -32,5 +27,5 @@ pub fn delay_ms(ms: u16) {
 
 pub fn fork(new_proc: extern "C" fn()) -> bool {
     interrupts::init_timers();
-    layout::ProcInfo::fork(new_proc, 0)
+    layout::ProcInfo::fork(new_proc)
 }

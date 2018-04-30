@@ -20,11 +20,6 @@ elf-old: Xargo.toml
 		RUST_TARGET_PATH=$(shell pwd) \
 		rustup run avr-old xargo build --target avr-attiny85 --release --verbose
 
-test-context-switch: Xargo.toml
-	XARGO_RUST_SRC=$(shell pwd)/../avr-rust/rust/src \
-		RUST_TARGET_PATH=$(shell pwd) \
-		rustup run avr-old xargo build --target avr-attiny85 --release --verbose --features test_context_switch
-
 test-interrupts: Xargo.toml
 	XARGO_RUST_SRC=$(shell pwd)/../avr-rust/rust/src \
 		RUST_TARGET_PATH=$(shell pwd) \

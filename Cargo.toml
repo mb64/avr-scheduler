@@ -4,5 +4,4 @@ version = "0.1.0"
 authors = ["Mark Barbone"]
 
 [features]
-test_context_switch = []
 test_interrupts = []
