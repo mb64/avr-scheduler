@@ -11,6 +11,13 @@ pub extern "C" fn k_main() -> ! {
     // If it's only single-threaded, there's no need, so it happens on calls
     // to fork()
 
+    unsafe {
+        for addr in layout::StacksIter::default() {
+            *layout::ProcInfo::at(addr) = layout::ProcInfo::dead();
+        }
+        (*layout::ProcInfo::at(layout::FIRST_STACK)).alive = true;
+    }
+
     main();
     die()
 }

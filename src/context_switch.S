@@ -86,25 +86,29 @@ _asm_start_fn:
     push r28
     push r29
 
-    ; Compensate for SP pointing to one below the last item
-    subi r22, 1 ; stack_loc -= 1
-    sbci r23, 0
+    ; Move stack_loc into r28r29 (saved across function calls)
+    movw r28, r22
+    ; Move f into r16r17 (saved across function calls)
+    movw r16, r24
 
-    movw r30, r24 ; Z = f
+    ; Compensate for SP pointing to one below the last item
+    sbiw r28, 1 ; stack_loc -= 1
+
     rcall get_proc_info_addr
     ; Returns in r24r25
-    movw r28, r24
+    movw r26, r24
     in r2, 61 ; my_stack = SP
     in r3, 62
-    st  Y,   r2
-    std Y+1, r3
+    st X+, r2
+    st X,  r3
 
     in r0, 63 ; Store SREG
     cli
-    out 61, r22 ; SP = stack_loc
-    out 62, r23
+    out 61, r28 ; SP = stack_loc
+    out 62, r29
     out 63, r0 ; Restore SREG
-    icall         ; Z()
+    movw r30, r16 ; Z = f
+    icall        ; Z()
     ; When/if it returns, the ProcContext needs to be cleared
     rcall get_proc_info_addr
     ; Returns in r24r25

@@ -28,6 +28,13 @@ extern "C" {
 }
 
 impl ProcInfo {
+    pub fn dead() -> Self {
+        ProcInfo {
+            sp: 0x0000,
+            alive: false,
+            asleep: 0,
+        }
+    }
     pub unsafe fn switch_to(&mut self, to: &mut Self) {
         let dest_sp = to.sp;
         to.sp = 0;
@@ -43,15 +50,16 @@ impl ProcInfo {
             asleep: 0,
         };
         unsafe {
-            let mut addr: usize = FIRST_STACK - 4; // size of ProcInfo = 4
-            while (*(addr as *const ProcInfo)).sp != 0 {
+            let mut addr: usize = FIRST_STACK;
+            while is_occupied(addr) {
                 addr -= STACK_SIZE;
                 if addr < 0x90 { // TODO
                     return false;
                 }
             }
-            ptr::write_volatile(addr as *mut ProcInfo, info);
-            _asm_start_fn(f, addr);
+            let proc_info = ProcInfo::at(addr);
+            ptr::write_volatile(proc_info, info);
+            _asm_start_fn(f, proc_info as usize);
         }
         true
     }
