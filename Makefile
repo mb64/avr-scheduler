@@ -23,7 +23,7 @@ elf-old: Xargo.toml
 test-interrupts: Xargo.toml
 	XARGO_RUST_SRC=$(shell pwd)/../avr-rust/rust/src \
 		RUST_TARGET_PATH=$(shell pwd) \
-		rustup run avr-old xargo build --target avr-attiny85 --release --verbose --features test_interrupts
+		rustup run avr-old xargo build --target avr-attiny85 --release --features test_interrupts
 
 upload-old: elf-old upload-this
 

@@ -5,6 +5,7 @@ authors = ["Mark Barbone"]
 
 [profile.release]
 lto = true
+debug = true
 
 [features]
 test_interrupts = []
