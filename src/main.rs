@@ -6,7 +6,6 @@
 #![no_main]
 
 pub mod attiny85_defs;
-pub mod process;
 pub mod lang;
 pub mod util;
 pub mod layout;
@@ -15,15 +14,7 @@ pub mod interface;
 
 use interface::*;
 
-#[cfg(feature = "test_context_switch")]
-pub fn main() {
-    unsafe {
-        process::test();
-    }
-}
-
-#[cfg(all(not(feature = "test_context_switch"),
-          feature = "test_interrupts"))]
+#[cfg(feature = "test_interrupts")]
 pub fn main() {
     let green_led = LED::new(Pin::Pin2);
     loop {
@@ -34,8 +25,7 @@ pub fn main() {
     }
 }
 
-#[cfg(all(not(feature = "test_context_switch"),
-          not(feature = "test_interrupts")))]
+#[cfg(not(feature = "test_interrupts"))]
 pub fn main() {
     fork(blink_green);
     let orange_led = LED::new(Pin::Pin0);

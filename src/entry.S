@@ -14,7 +14,7 @@ main:
     out 38, r16
 
     ; Set up stack
-    ; (Be sure to put non-zero junk in ProcInfo)
+    ; (Be sure to zero-out the ProcInfo)
     cli
     ldi r22, 0x5f
     ldi r23, 2
@@ -23,11 +23,9 @@ main:
     ldi r16, 0x00
     push r16
     push r16
-    ldi r16, 0xff
     push r16
     push r16
 
     rjmp k_main
 _end_main:
     .size main, _end_main-main
-

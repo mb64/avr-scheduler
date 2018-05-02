@@ -7,5 +7,4 @@ authors = ["Mark Barbone"]
 lto = true
 
 [features]
-test_context_switch = []
 test_interrupts = []
