@@ -1,6 +1,5 @@
-#![feature(asm, lang_items, unwind_attributes)]
+#![feature(llvm_asm, lang_items)]
 #![feature(abi_avr_interrupt)]
-#![feature(never_type)]
 #![no_std]
 #![no_main]
 

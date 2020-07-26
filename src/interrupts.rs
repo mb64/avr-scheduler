@@ -27,7 +27,7 @@ pub fn init_timers() {
 
         // Enable timer interrupts
         TIMSK::modify(|old| old | OCIE0A);
-        asm!("sei" :::: "volatile");
+        llvm_asm!("sei" :::: "volatile");
 
         // Interrupt when counter = 200
         OCR0A::set(200);

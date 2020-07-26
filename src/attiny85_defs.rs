@@ -7,7 +7,7 @@ use core::ptr;
 pub fn uninterrupted<F: FnOnce()>(f: F) {
     let saved_sreg_i: u8 = unsafe { ptr::read_volatile(SREG::ADDRESS) | I.value };
     unsafe {
-        asm!("cli" :::: "volatile");
+        llvm_asm!("cli" :::: "volatile");
     }
     f();
     unsafe {

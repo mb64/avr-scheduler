@@ -6,7 +6,7 @@ pub fn busy_loop_ms(ms: u16) {
     for _ in 0..2 * ms {
         for _ in (0 as u8)..(250 as u8) {
             unsafe {
-                asm!(""::::"volatile");
+                llvm_asm!(""::::"volatile");
             }
         }
     }

@@ -4,8 +4,8 @@
   "target-endian": "little",
   "target-pointer-width": "16",
   "os": "unknown",
-  "target-env": "",
-  "target-vendor": "unknown",
+  "env": "",
+  "vendor": "unknown",
   "arch": "avr",
   "data-layout": "e-p:16:8-i8:8-i16:8-i32:8-i64:8-f32:8-f64:8-n8-a:8",
 
@@ -13,16 +13,19 @@
 
   "linker": "avr-gcc",
   "linker-flavor": "gcc",
+  "linker-is-gnu": true,
   "pre-link-args": {
     "gcc": [ "src/context_switch.S", "src/entry.S", "-Os", "-mmcu=attiny85"]
   },
   "exe-suffix": ".elf",
   "post-link-args": {
-    "gcc": ["-Wl,--gc-sections"]
+    "gcc": ["-Wl,--gc-sections", "-lc", "-lgcc"]
   },
 
   "no-default-libraries": false,
+  "no-compiler-rt": true,
+  "position-independent-executable": false,
+  "eh-frame-header": false,
 
   "target-c-int-width": "16"
 }
-

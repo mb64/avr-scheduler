@@ -1,4 +1,5 @@
 use attiny85_defs::*;
+use core::panic::PanicInfo;
 use util::busy_loop_ms;
 
 #[lang = "eh_personality"]
@@ -10,10 +11,8 @@ pub unsafe extern "C" fn rust_eh_personality(
 ) -> () {
 }
 
-#[lang = "panic_fmt"]
-#[unwind]
-#[no_mangle]
-pub extern "C" fn oh_no_bad_stuff(_msg: (), _file: &'static str, _line: u32) -> ! {
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
     unsafe {
         DDRB::set(0x1F);
         loop {
