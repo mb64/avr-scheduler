@@ -1,4 +1,4 @@
-#![rustfmt::skip]
+#![cfg_attr(rustfmt, rustfmt::skip)]
 
 use core::marker::PhantomData;
 use core::ops::{BitAnd, BitOr, BitXor, Not};
