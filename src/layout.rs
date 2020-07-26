@@ -1,4 +1,4 @@
-use attiny85_defs::*;
+use crate::attiny85_defs::*;
 use core::ptr;
 
 #[repr(C, packed)]

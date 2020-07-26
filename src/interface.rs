@@ -2,12 +2,12 @@
 // However, it's currently fantastically incomplete, so for anything
 // more complex than blinking lights, that's not yet possible.
 
-use interrupts;
-use layout;
+use crate::interrupts;
+use crate::layout;
 
-pub use attiny85_defs::uninterrupted;
-pub use interrupts::die;
-pub use util::{Pin, LED};
+pub use crate::attiny85_defs::uninterrupted;
+pub use crate::interrupts::die;
+pub use crate::util::{Pin, LED};
 
 pub fn delay_ms(ms: u16) {
     // 4 ms counts

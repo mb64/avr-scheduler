@@ -1,8 +1,8 @@
-use attiny85_defs::*;
+use crate::attiny85_defs::*;
 use core::ptr;
 
 use super::main;
-use layout;
+use crate::layout;
 
 #[no_mangle]
 pub extern "C" fn k_main() -> ! {

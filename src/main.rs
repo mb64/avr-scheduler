@@ -10,7 +10,7 @@ pub mod lang;
 pub mod layout;
 pub mod util;
 
-use interface::*;
+use crate::interface::*;
 
 #[cfg(feature = "test_interrupts")]
 pub fn main() {

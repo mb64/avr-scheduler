@@ -1,6 +1,6 @@
-use attiny85_defs::*;
+use crate::attiny85_defs::*;
 use core::panic::PanicInfo;
-use util::busy_loop_ms;
+use crate::util::busy_loop_ms;
 
 #[lang = "eh_personality"]
 #[no_mangle]

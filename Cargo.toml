@@ -2,6 +2,7 @@
 name = "scheduler"
 version = "0.1.0"
 authors = ["Mark Barbone"]
+edition = "2018"
 
 [profile.release]
 lto = true

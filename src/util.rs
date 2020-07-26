@@ -1,4 +1,4 @@
-use attiny85_defs::*;
+use crate::attiny85_defs::*;
 
 pub const CPU_SPEED_HZ: u32 = 4_000_000;
 
