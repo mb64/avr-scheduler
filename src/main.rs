@@ -1,16 +1,15 @@
 #![feature(asm, lang_items, unwind_attributes)]
 #![feature(abi_avr_interrupt)]
 #![feature(never_type)]
-
 #![no_std]
 #![no_main]
 
 pub mod attiny85_defs;
-pub mod lang;
-pub mod util;
-pub mod layout;
-pub mod interrupts;
 pub mod interface;
+pub mod interrupts;
+pub mod lang;
+pub mod layout;
+pub mod util;
 
 use interface::*;
 

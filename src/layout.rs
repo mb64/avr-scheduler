@@ -1,8 +1,7 @@
-
 use attiny85_defs::*;
 use core::ptr;
 
-#[repr(C,packed)]
+#[repr(C, packed)]
 pub struct ProcInfo {
     pub sp: u16,
     pub alive: bool,
@@ -42,8 +41,7 @@ impl ProcInfo {
     }
 
     // Returns true on success, false on failure
-    pub fn fork(f: extern "C" fn()) -> bool
-    {
+    pub fn fork(f: extern "C" fn()) -> bool {
         let info = ProcInfo {
             sp: 0x0000,
             alive: true,
@@ -53,7 +51,8 @@ impl ProcInfo {
             let mut addr: usize = FIRST_STACK;
             while is_occupied(addr) {
                 addr -= STACK_SIZE;
-                if addr < 0x90 { // TODO
+                if addr < 0x90 {
+                    // TODO
                     return false;
                 }
             }
@@ -86,9 +85,7 @@ pub struct StacksIter {
 }
 impl Default for StacksIter {
     fn default() -> Self {
-        StacksIter {
-            addr: 0x60,
-        }
+        StacksIter { addr: 0x60 }
     }
 }
 impl Iterator for StacksIter {

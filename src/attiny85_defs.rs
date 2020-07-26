@@ -1,12 +1,14 @@
+#![rustfmt::skip]
 
-use core::ptr;
 use core::marker::PhantomData;
-use core::ops::{BitOr, BitAnd, BitXor, Not};
-
+use core::ops::{BitAnd, BitOr, BitXor, Not};
+use core::ptr;
 
 pub fn uninterrupted<F: FnOnce()>(f: F) {
     let saved_sreg_i: u8 = unsafe { ptr::read_volatile(SREG::ADDRESS) | I.value };
-    unsafe { asm!("cli" :::: "volatile"); }
+    unsafe {
+        asm!("cli" :::: "volatile");
+    }
     f();
     unsafe {
         let old_sreg = ptr::read_volatile(SREG::ADDRESS);
@@ -25,7 +27,7 @@ macro_rules! mask {
             value: $value,
             phantom: PhantomData,
         }
-    }
+    };
 }
 
 impl<T> Clone for Mask<T> {
@@ -33,7 +35,7 @@ impl<T> Clone for Mask<T> {
         mask!(self.value)
     }
 }
-impl<T> Copy for Mask<T> { }
+impl<T> Copy for Mask<T> {}
 
 impl<T> BitAnd for Mask<T> {
     type Output = Self;
@@ -69,7 +71,8 @@ pub trait Reg8: Sized {
         ptr::write_volatile(Self::ADDRESS, new_val);
     }
     unsafe fn modify<F>(f: F)
-        where F: FnOnce(Mask<Self>) -> Mask<Self>
+    where
+        F: FnOnce(Mask<Self>) -> Mask<Self>,
     {
         uninterrupted(|| {
             let old_val: Mask<Self> = mask!(Self::get());
@@ -96,8 +99,7 @@ macro_rules! def_bit {
 }
 
 macro_rules! def_reg {
-    ($addr:tt is reserved) => {
-    };
+    ($addr:tt is reserved) => {};
     ($addr:expr, $name:ident, [$b7:tt, $b6:tt, $b5:tt, $b4:tt, $b3:tt, $b2:tt, $b1:tt, $b0:tt]) => {
         pub struct $name;
         impl Reg8 for $name {
@@ -126,7 +128,7 @@ macro_rules! def_reg16 {
         impl Reg16 for $name {
             const ADDRESS: *mut u16 = $addr as *mut u16;
         }
-    }
+    };
 }
 
 def_reg!(0x5F, SREG,   [I,       T,       H,       S,       V,       N,       Z,       C      ]);

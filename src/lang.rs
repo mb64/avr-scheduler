@@ -1,10 +1,13 @@
-
 use attiny85_defs::*;
 use util::busy_loop_ms;
 
 #[lang = "eh_personality"]
 #[no_mangle]
-pub unsafe extern "C" fn rust_eh_personality(_state: (), _exception_object: *mut (), _context: *mut ()) -> () {
+pub unsafe extern "C" fn rust_eh_personality(
+    _state: (),
+    _exception_object: *mut (),
+    _context: *mut (),
+) -> () {
 }
 
 #[lang = "panic_fmt"]

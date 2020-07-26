@@ -1,17 +1,18 @@
-
 use attiny85_defs::*;
 
 pub const CPU_SPEED_HZ: u32 = 4_000_000;
 
 pub fn busy_loop_ms(ms: u16) {
-    for _ in 0..2*ms {
+    for _ in 0..2 * ms {
         for _ in (0 as u8)..(250 as u8) {
-            unsafe { asm!(""::::"volatile"); }
+            unsafe {
+                asm!(""::::"volatile");
+            }
         }
     }
 }
 
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 pub enum Pin {
     Pin0,
     Pin1,
@@ -43,7 +44,7 @@ impl Pin {
     }
 }
 
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 pub struct LED {
     portb_mask: Mask<PORTB>,
 }
@@ -51,7 +52,7 @@ pub struct LED {
 impl LED {
     pub fn new(pin: Pin) -> Self {
         unsafe {
-            DDRB::modify(|old| { old | pin.to_ddrb_mask() });
+            DDRB::modify(|old| old | pin.to_ddrb_mask());
         }
         LED {
             portb_mask: pin.to_portb_mask(),
@@ -59,13 +60,12 @@ impl LED {
     }
     pub fn on(self) {
         unsafe {
-            PORTB::modify(|old| { old | self.portb_mask });
+            PORTB::modify(|old| old | self.portb_mask);
         }
     }
     pub fn off(self) {
         unsafe {
-            PORTB::modify(|old| { old & (!self.portb_mask) });
+            PORTB::modify(|old| old & (!self.portb_mask));
         }
     }
 }
-

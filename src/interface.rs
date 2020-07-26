@@ -1,14 +1,13 @@
-
 // Ideally, _all_ user I/O would use this module.
 // However, it's currently fantastically incomplete, so for anything
 // more complex than blinking lights, that's not yet possible.
 
-use layout;
 use interrupts;
+use layout;
 
-pub use util::{LED,Pin};
 pub use attiny85_defs::uninterrupted;
 pub use interrupts::die;
+pub use util::{Pin, LED};
 
 pub fn delay_ms(ms: u16) {
     // 4 ms counts
